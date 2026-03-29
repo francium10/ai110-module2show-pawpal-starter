@@ -36,10 +36,28 @@ Yes, the design changed in several meaningful ways during implementation:
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
+**Constraints considered:**
+1. **Time Budget**: Tasks are capped at `daily_limit_minutes`
+2. **Priority**: HIGH tasks scheduled before MEDIUM and LOW
+3. **Scheduled Time**: Tasks sorted chronologically when time-based view needed
+4. **Conflicts**: Overlapping tasks are detected and warned about
+
+I decided priority matters most because critical care (medications, urgent needs) 
+should never be skipped, even if it means lower-priority enrichment activities 
+get excluded.
+
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
+
+**Tradeoff**: The conflict detection algorithm checks for overlapping time windows 
+(duration-aware), not just exact time matches. This is more thorough but has O(n²) 
+time complexity.
+
+**Why reasonable**: For typical pet care scenarios (5-15 tasks/day), O(n²) is 
+negligible. The benefit of catching all overlaps outweighs the cost of slightly 
+more computation. A pet owner would rather see all conflicts than miss one.
 
 ---
 
@@ -50,10 +68,22 @@ Yes, the design changed in several meaningful ways during implementation:
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+I used AI primarily in three ways:
+
+1. **Debugging subtle bugs** — When `remove_task` and `remove_pet` were silently dropping tasks, I described the symptom ("some tasks aren't being removed correctly") and asked the AI to explain what could go wrong when modifying a list inside a loop. It correctly identified list mutation during iteration as the cause and explained why a list comprehension rebuild is the standard fix.
+
+2. **Implementing algorithms from stubs** — For `detect_conflicts`, I described what a conflict means (two time windows that overlap) and asked for pseudocode before writing any code. The AI produced the pairwise comparison pattern (`start_a < end_b and start_b < end_a`) and the overlap duration calculation. Understanding the logic before seeing the code made it easier to verify.
+
+3. **Design clarification** — When `Owner.get_all_tasks()` returned a flat list with no way to tell which pet each task belonged to, I asked the AI how to link a task back to its pet without redesigning all the classes. It suggested adding `pet_name` to `Task`, populated automatically inside `Pet.add_task()`.
+
+The most helpful prompts were specific and narrow: "here is the bug I'm seeing, here is the function, what is wrong?" rather than open-ended requests like "make my code better."
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+When I asked the AI to implement `sort_by_priority`, its first suggestion sorted only by `priority.value` descending. I noticed that tasks with the same priority would come out in arbitrary order — making the output non-deterministic and difficult to test reliably. The AI hadn't considered this edge case. I added the secondary sort key on `scheduled_time` (with `datetime.max` as a fallback for unscheduled tasks) myself, then verified it manually by checking that two HIGH-priority tasks at different times consistently appeared in chronological order within the same priority tier.
 
 ---
 
