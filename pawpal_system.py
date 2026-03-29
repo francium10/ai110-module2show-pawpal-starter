@@ -31,9 +31,18 @@ class Task:
         """Mark the task as completed."""
         self.is_complete = True
 
+    def mark_incomplete(self) -> None:
+        """Reset the task back to incomplete."""
+        self.is_complete = False
+
     def reschedule(self, new_time: datetime) -> None:
         """Reschedule the task to a new time."""
         self.scheduled_time = new_time
+
+    def __str__(self) -> str:
+        priority_label = self.priority.name.capitalize()
+        time_str = self.scheduled_time.strftime("%H:%M") if self.scheduled_time else "Unscheduled"
+        return f"{self.title} ({self.duration_minutes}min) [{priority_label}] @ {time_str}"
 
 
 @dataclass
@@ -54,6 +63,10 @@ class Pet:
         original_len = len(self.tasks)
         self.tasks = [t for t in self.tasks if t.title != task_title]
         return len(self.tasks) < original_len
+
+    def get_pending_tasks(self) -> List[Task]:
+        """Get tasks that are not yet complete."""
+        return [t for t in self.tasks if not t.is_complete]
 
 
 @dataclass
@@ -77,6 +90,17 @@ class Owner:
         """Get all tasks across all pets."""
         return [task for pet in self.pets for task in pet.tasks]
 
+    def get_pending_tasks(self) -> List[Task]:
+        """Get all incomplete tasks across all pets."""
+        return [task for task in self.get_all_tasks() if not task.is_complete]
+
+    def get_pet(self, pet_name: str) -> Optional[Pet]:
+        """Find and return a pet by name, or None if not found."""
+        for pet in self.pets:
+            if pet.name == pet_name:
+                return pet
+        return None
+
 
 @dataclass
 class Scheduler:
@@ -84,12 +108,14 @@ class Scheduler:
     owner: Owner
     daily_limit_minutes: int = 480
 
-    def generate_schedule(self) -> List[Task]:
+    def generate_schedule(self, include_completed: bool = False) -> List[Task]:
         """
         Generate an optimized daily schedule.
         Returns tasks sorted by priority and time, capped at daily_limit_minutes.
         """
         all_tasks = self.owner.get_all_tasks()
+        if not include_completed:
+            all_tasks = [t for t in all_tasks if not t.is_complete]
         sorted_tasks = self.sort_by_priority(all_tasks)
 
         scheduled: List[Task] = []
@@ -121,6 +147,36 @@ class Scheduler:
                         conflicts.append(task_b)
 
         return conflicts
+
+    def format_schedule(self, tasks: List[Task]) -> str:
+        """Return a formatted string representation of the schedule."""
+        if not tasks:
+            return "  No tasks fit within today's time budget."
+
+        lines = ["\nOptimized Schedule:\n"]
+        total = 0
+        for i, task in enumerate(tasks, start=1):
+            time_str = task.scheduled_time.strftime("%H:%M") if task.scheduled_time else "Unscheduled"
+            lines.append(
+                f"  {i}. [{task.priority.name:<6}] {task.title} "
+                f"({task.duration_minutes}min) | {time_str}"
+                f"  [pet: {task.pet_name or '?'}]"
+            )
+            total += task.duration_minutes
+        lines.append(f"\n  Total time: {total} minutes")
+        return "\n".join(lines)
+
+    def get_total_scheduled_minutes(self, tasks: List[Task]) -> int:
+        """Return the sum of duration_minutes for all given tasks."""
+        return sum(t.duration_minutes for t in tasks)
+
+    def assign_times(self, tasks: List[Task], start: datetime) -> None:
+        """Assign sequential scheduled_time to each task starting from start."""
+        from datetime import timedelta
+        current = start
+        for task in tasks:
+            task.scheduled_time = current
+            current = current + timedelta(minutes=task.duration_minutes)
 
     def sort_by_priority(self, tasks: List[Task]) -> List[Task]:
         """Sort tasks by priority (HIGH first), then by scheduled_time as tiebreaker."""
