@@ -25,6 +25,7 @@ class Task:
     is_recurring: bool = False
     scheduled_time: Optional[datetime] = None
     is_complete: bool = False
+    pet_name: Optional[str] = None  # Tracks which pet this task belongs to
 
     def mark_complete(self) -> None:
         """Mark the task as completed."""
@@ -45,15 +46,14 @@ class Pet:
 
     def add_task(self, task: Task) -> None:
         """Add a care task for this pet."""
+        task.pet_name = self.name  # Link task back to this pet
         self.tasks.append(task)
 
     def remove_task(self, task_title: str) -> bool:
         """Remove a task by title. Returns True if removed."""
-        for task in self.tasks:
-            if task.title == task_title:
-                self.tasks.remove(task)
-                return True
-        return False
+        original_len = len(self.tasks)
+        self.tasks = [t for t in self.tasks if t.title != task_title]
+        return len(self.tasks) < original_len
 
 
 @dataclass
@@ -69,11 +69,9 @@ class Owner:
 
     def remove_pet(self, pet_name: str) -> bool:
         """Remove a pet by name. Returns True if removed."""
-        for pet in self.pets:
-            if pet.name == pet_name:
-                self.pets.remove(pet)
-                return True
-        return False
+        original_len = len(self.pets)
+        self.pets = [p for p in self.pets if p.name != pet_name]
+        return len(self.pets) < original_len
 
     def get_all_tasks(self) -> List[Task]:
         """Get all tasks across all pets."""
@@ -89,21 +87,53 @@ class Scheduler:
     def generate_schedule(self) -> List[Task]:
         """
         Generate an optimized daily schedule.
-        Returns tasks sorted by priority and time.
+        Returns tasks sorted by priority and time, capped at daily_limit_minutes.
         """
         all_tasks = self.owner.get_all_tasks()
-        return self.sort_by_priority(all_tasks)
+        sorted_tasks = self.sort_by_priority(all_tasks)
+
+        scheduled: List[Task] = []
+        total_minutes = 0
+        for task in sorted_tasks:
+            if total_minutes + task.duration_minutes <= self.daily_limit_minutes:
+                scheduled.append(task)
+                total_minutes += task.duration_minutes
+
+        return scheduled
 
     def detect_conflicts(self, tasks: List[Task]) -> List[Task]:
-        """Detect scheduling conflicts (overlapping tasks)."""
-        return []  # TODO: Implement
+        """Detect scheduling conflicts (overlapping tasks). Returns conflicting tasks."""
+        conflicts: List[Task] = []
+        timed_tasks = [t for t in tasks if t.scheduled_time is not None]
+
+        for i, task_a in enumerate(timed_tasks):
+            end_a = task_a.scheduled_time.timestamp() + task_a.duration_minutes * 60  # type: ignore[union-attr]
+            for task_b in timed_tasks[i + 1:]:
+                start_b = task_b.scheduled_time.timestamp()  # type: ignore[union-attr]
+                end_b = start_b + task_b.duration_minutes * 60
+                start_a = task_a.scheduled_time.timestamp()  # type: ignore[union-attr]
+
+                # Overlap if one starts before the other ends
+                if start_a < end_b and start_b < end_a:
+                    if task_a not in conflicts:
+                        conflicts.append(task_a)
+                    if task_b not in conflicts:
+                        conflicts.append(task_b)
+
+        return conflicts
 
     def sort_by_priority(self, tasks: List[Task]) -> List[Task]:
-        """Sort tasks by priority (HIGH first)."""
-        return sorted(tasks, key=lambda task: task.priority.value, reverse=True)
+        """Sort tasks by priority (HIGH first), then by scheduled_time as tiebreaker."""
+        return sorted(
+            tasks,
+            key=lambda task: (
+                -task.priority.value,
+                task.scheduled_time or datetime.max
+            )
+        )
 
 
 # CLI Demo (for testing)
 if __name__ == "__main__":
-    print("🐾 PawPal+ System Initialized")
+    print("PawPal+ System Initialized")
     # TODO: Add demo code in Phase 2
