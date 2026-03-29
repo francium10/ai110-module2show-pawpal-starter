@@ -4,19 +4,19 @@
 
 PawPal+ is a Streamlit application that helps pet owners plan and manage daily care tasks using intelligent scheduling algorithms. It features priority-based scheduling, conflict detection, recurring task automation, and comprehensive filtering and sorting capabilities.
 
----
-
 ## 📸 Demo
 
-*Screenshot placeholder - add your app screenshot here:*
+### Tab 1: Manage Tasks
+![Manage Tasks](docs/images/demo1.png)
 
-```markdown
-<a href="/course_images/ai110/pawpal_screenshot.png" target="_blank">
-  <img src='/course_images/ai110/pawpal_screenshot.png' title='PawPal App' width='' alt='PawPal App' class='center-block' />
-</a>
-```
+### Tab 2: Smart Schedule with Conflict Detection
+![Smart Schedule](docs/images/demo2.png)
 
----
+### Tab 3: Filter & Sort
+![Filter and Sort](docs/images/demo3.png)
+
+### Tab 4: Analytics Dashboard
+![Analytics](docs/images/demo4.png)
 
 ## ✨ Features
 
