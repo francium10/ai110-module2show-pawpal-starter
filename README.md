@@ -148,3 +148,39 @@ PawPal+ includes intelligent algorithms for optimized pet care planning:
 - Detects overlapping time windows (not just exact matches)
 - Returns detailed warnings with overlap duration
 - Identifies same-pet vs cross-pet conflicts
+
+## Testing PawPal+
+
+### Running Tests
+
+**With pytest installed:**
+```bash
+python -m pytest test_pawpal.py -v
+```
+
+**Without pytest:**
+```bash
+python run_tests.py
+```
+
+### Test Coverage
+
+The test suite includes **47 tests** covering:
+
+- **Core Classes**: Task, Pet, Owner creation and manipulation
+- **Sorting Algorithms**: Chronological, priority-based, duration-based ordering
+- **Filtering Algorithms**: By pet, status, priority, recurrence, and chained filters
+- **Recurring Tasks**: Daily, weekly, biweekly timedelta calculations
+- **Conflict Detection**: Overlapping time windows, same/different pet conflicts
+- **Schedule Generation**: Time budget constraints, priority ordering
+- **Edge Cases**: Empty lists, zero duration, exact budget matches
+
+### Confidence Level
+
+⭐⭐⭐⭐⭐ (5/5 stars)
+
+All 47 tests pass. The test suite covers:
+- Happy paths (normal operation)
+- Edge cases (empty data, boundary conditions)
+- Algorithmic correctness (sorting, filtering, conflict detection)
+- Recurring task automation with accurate timedelta calculations

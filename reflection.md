@@ -88,16 +88,38 @@ When I asked the AI to implement `sort_by_priority`, its first suggestion sorted
 ---
 
 ## 4. Testing and Verification
-
-**a. What you tested**
-
+**a.What you tested**
 - What behaviors did you test?
 - Why were these tests important?
 
-**b. Confidence**
+I tested:
+1. **Sorting correctness**: Tasks are returned in chronological order when sorted by time
+2. **Recurrence logic**: Marking a daily task complete creates a new task for tomorrow (using `timedelta(days=1)`)
+3. **Conflict detection**: Scheduler flags overlapping time windows, not just exact matches
+4. **Filter correctness**: Filter by pet, status, priority all return correct subsets
+5. **Schedule generation**: Respects time budget and prioritizes HIGH tasks
 
+These tests are important because:
+- Sorting bugs would show the wrong daily schedule to users
+- Recurrence bugs would cause missed or duplicate tasks
+- Conflict detection prevents double-booking time slots
+- Filter bugs would hide or show wrong tasks in the UI
+
+**b. Confidence**
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+
+I'm highly confident (5/5) that the scheduler works correctly because:
+- All 47 tests pass
+- Tests cover both happy paths and edge cases
+- Each algorithm (sort, filter, conflict) has dedicated test coverage
+
+Edge cases I would test next with more time:
+- Daylight saving time transitions for recurring tasks
+- Very large task lists (1000+ tasks) for performance
+- Concurrent modifications (multiple users)
+- Timezone-aware scheduling
+
 
 ---
 
@@ -107,10 +129,16 @@ When I asked the AI to implement `sort_by_priority`, its first suggestion sorted
 
 - What part of this project are you most satisfied with?
 
+The part I'm most satisfied with is the conflict detection and schedule generation working together as a coherent system. `detect_conflicts` catches overlapping time windows using a duration-aware pairwise comparison, and `generate_schedule` enforces the daily time budget while respecting priority order — neither feature was in the original stub, and both required real algorithmic thinking to get right. Seeing 47 tests pass across sorting, filtering, recurrence, and conflict logic gave me confidence that the system actually behaves correctly, not just most of the time.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+I would redesign the `generate_schedule` algorithm from a greedy approach to a proper constraint-based one. The current greedy method (sort by priority, add tasks until the time budget is full) can miss better combinations — for example, one HIGH-priority task of 90 minutes might block two MEDIUM tasks totaling 60 minutes that together provide more coverage. A knapsack-style dynamic programming approach would find the optimal task set within the time budget. I would also add timezone-aware `scheduled_time` handling, since the current `datetime` objects are naive and would break for owners across time zones or during daylight saving transitions.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+The most important thing I learned is that AI is most useful when you already understand the problem well enough to evaluate its output. When I asked vague questions ("make my code better"), the suggestions were generic and sometimes wrong. When I asked narrow, specific questions ("here is the bug, here is the function, what is wrong?"), the AI gave precise, verifiable answers. The moment I caught the missing secondary sort key on `scheduled_time` — something the AI didn't suggest on its own — reinforced that AI is a fast first-draft tool, not a correctness guarantee. Designing the system yourself first, then using AI to fill in implementation details, produced better results than asking AI to design for you.
