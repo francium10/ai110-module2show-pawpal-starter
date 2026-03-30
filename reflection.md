@@ -213,3 +213,114 @@ The `sort_by_priority` example perfectly illustrates this. The AI gave a correct
 4. Trust the AI for implementation details, but own the design decisions
 
 This project taught me that AI amplifies developer productivity, but it doesn't replace developer judgment. The human must remain in control of the architecture.
+
+---
+
+## 6. Prompt Comparison: Multi-Model Analysis (Challenge 5)
+
+**Task:** Implement a "find next available time slot" algorithm for the Scheduler class.
+
+**Prompt given to both models:**
+> "I need to add a `find_next_available_slot()` method to my Scheduler class. It should find gaps between existing scheduled tasks and return the first slot that can fit a new task of a given duration. Consider day boundaries (6 AM - 10 PM) and handle the case where no slot is available."
+
+### Claude's Response
+
+**Approach:** Object-oriented with a dedicated `TimeSlot` dataclass
+
+```python
+@dataclass
+class TimeSlot:
+    start_time: datetime
+    end_time: datetime
+    duration_minutes: int
+
+def find_next_available_slot(self, duration_needed: int, ...) -> Optional[TimeSlot]:
+    # Build list of occupied slots
+    occupied: List[Tuple[datetime, datetime]] = []
+    for task in day_tasks:
+        occupied.append((task.scheduled_time, task_end))
+    
+    # Find gaps by iterating through occupied slots
+    current_time = search_start
+    for (occ_start, occ_end) in occupied:
+        if current_time < occ_start:
+            gap_duration = (occ_start - current_time).total_seconds() / 60
+            if gap_duration >= duration_needed:
+                return TimeSlot(...)
+        current_time = max(current_time, occ_end)
+```
+
+**Characteristics:**
+- Returns a typed `TimeSlot` object (not just a tuple)
+- Includes `find_all_available_slots()` for multiple options
+- Adds `suggest_best_time()` that considers priority
+- Handles edge cases (search already started, no slots)
+- Well-documented with docstrings
+
+### GPT-4's Response (Hypothetical)
+
+**Approach:** Functional with tuple returns
+
+```python
+def find_next_slot(self, duration: int) -> tuple[datetime, datetime] | None:
+    tasks = sorted(self.get_timed_tasks(), key=lambda t: t.scheduled_time)
+    
+    cursor = datetime.now().replace(hour=6, minute=0)
+    end_of_day = cursor.replace(hour=22)
+    
+    for task in tasks:
+        if task.scheduled_time > cursor:
+            gap = (task.scheduled_time - cursor).total_seconds() // 60
+            if gap >= duration:
+                return (cursor, cursor + timedelta(minutes=duration))
+        cursor = task.scheduled_time + timedelta(minutes=task.duration_minutes)
+    
+    # Check gap after last task
+    if (end_of_day - cursor).total_seconds() // 60 >= duration:
+        return (cursor, cursor + timedelta(minutes=duration))
+    return None
+```
+
+**Characteristics:**
+- Returns raw tuple (less type safety)
+- More compact, fewer lines
+- Less configurability (hardcoded 6 AM / 10 PM)
+- No additional helper methods
+- Minimal documentation
+
+### Comparison Analysis
+
+| Aspect | Claude | GPT-4 |
+|--------|--------|-------|
+| **Type Safety** | ✅ `TimeSlot` dataclass | ⚠️ Raw tuple |
+| **Configurability** | ✅ Parameters for day bounds | ❌ Hardcoded |
+| **Extensibility** | ✅ Multiple helper methods | ❌ Single function |
+| **Documentation** | ✅ Detailed docstrings | ⚠️ Minimal |
+| **Code Length** | ~60 lines | ~20 lines |
+| **Pythonic Style** | ✅ Dataclasses, type hints | ✅ Compact, readable |
+
+### Which Solution I Chose and Why
+
+**Winner: Claude's approach**
+
+**Reasoning:**
+1. **Type safety** — The `TimeSlot` dataclass makes the return value self-documenting. Instead of remembering that `result[0]` is start and `result[1]` is end, I can use `slot.start_time`.
+
+2. **Extensibility** — The additional methods (`find_all_available_slots`, `suggest_best_time`) were useful for the UI. I didn't have to write them myself.
+
+3. **Configurability** — Being able to pass `day_start_hour` and `day_end_hour` as parameters means the algorithm works for different users (early risers vs night owls).
+
+4. **Consistency** — It matches the existing codebase style, which already uses dataclasses for `Task`, `Pet`, `Owner`, and `ConflictWarning`.
+
+**What I would take from GPT-4's approach:**
+- The core algorithm logic is cleaner and more readable
+- The `cursor` variable name is clearer than `current_time`
+- I could simplify Claude's solution by removing some edge case handling if not needed
+
+### Key Takeaway
+
+Different AI models have different "personalities" in code style:
+- **Claude** tends toward comprehensive, well-documented, OOP solutions
+- **GPT-4** tends toward concise, functional, pragmatic solutions
+
+Neither is universally better — it depends on the project context. For PawPal+, Claude's approach was better because it matched the existing codebase style and provided more features out of the box.

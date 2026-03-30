@@ -2,14 +2,21 @@
 """
 PawPal+ Test Runner (No pytest required)
 
-Run with: python run_tests.py
+Run with: python tests/run_tests.py
 """
 
-from datetime import datetime, timedelta
+# =============================================================================
+# FIX: Add parent directory to path so imports work from tests/ folder
+# =============================================================================
 from pawpal_system import (
     Task, Pet, Owner, Scheduler,
     Priority, Frequency, ConflictWarning
 )
+from datetime import datetime, timedelta
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 passed = 0
 failed = 0
@@ -50,6 +57,7 @@ def section(name):
 # =============================================================================
 section("TASK TESTS")
 
+
 @test("Task creation with defaults")
 def test_task_creation_with_defaults():
     task = Task(title="Walk the dog", duration_minutes=30)
@@ -60,12 +68,14 @@ def test_task_creation_with_defaults():
     assert task.is_complete is False
     assert task.is_recurring is False
 
+
 @test("Task mark_complete changes status")
 def test_mark_complete():
     task = Task(title="Feed", duration_minutes=10)
     assert task.is_complete is False
     task.mark_complete()
     assert task.is_complete is True
+
 
 @test("Task mark_incomplete resets status")
 def test_mark_incomplete():
@@ -75,6 +85,7 @@ def test_mark_incomplete():
     task.mark_incomplete()
     assert task.is_complete is False
 
+
 @test("Task reschedule updates time")
 def test_reschedule():
     task = Task(title="Vet", duration_minutes=60)
@@ -82,6 +93,7 @@ def test_reschedule():
     assert task.scheduled_time is None
     task.reschedule(new_time)
     assert task.scheduled_time == new_time
+
 
 @test("Task is_recurring property")
 def test_is_recurring():
@@ -95,6 +107,7 @@ def test_is_recurring():
 # RECURRING TASK TESTS
 # =============================================================================
 section("RECURRING TASK TESTS")
+
 
 @test("Daily task creates next day occurrence")
 def test_daily_recurrence():
@@ -111,6 +124,7 @@ def test_daily_recurrence():
     assert next_task.scheduled_time == base_time + timedelta(days=1)
     assert next_task.is_complete is False
 
+
 @test("Weekly task creates next week occurrence")
 def test_weekly_recurrence():
     base_time = datetime(2026, 3, 29, 10, 0)
@@ -123,6 +137,7 @@ def test_weekly_recurrence():
     next_task = task.mark_complete()
     assert next_task is not None
     assert next_task.scheduled_time == base_time + timedelta(days=7)
+
 
 @test("Biweekly task creates two weeks later")
 def test_biweekly_recurrence():
@@ -137,11 +152,14 @@ def test_biweekly_recurrence():
     assert next_task is not None
     assert next_task.scheduled_time == base_time + timedelta(days=14)
 
+
 @test("Non-recurring task returns None on completion")
 def test_non_recurring_returns_none():
-    task = Task(title="Vet visit", duration_minutes=60, frequency=Frequency.ONCE)
+    task = Task(title="Vet visit", duration_minutes=60,
+                frequency=Frequency.ONCE)
     result = task.mark_complete()
     assert result is None
+
 
 @test("Recurring task preserves pet_name")
 def test_recurring_preserves_pet():
@@ -162,6 +180,7 @@ def test_recurring_preserves_pet():
 # =============================================================================
 section("PET TESTS")
 
+
 @test("Pet creation")
 def test_pet_creation():
     pet = Pet(name="Mochi", species="dog", age=3)
@@ -169,6 +188,7 @@ def test_pet_creation():
     assert pet.species == "dog"
     assert pet.age == 3
     assert pet.tasks == []
+
 
 @test("Pet add_task increases count and sets pet_name")
 def test_pet_add_task():
@@ -178,6 +198,7 @@ def test_pet_add_task():
     pet.add_task(task)
     assert len(pet.tasks) == 1
     assert task.pet_name == "Buddy"
+
 
 @test("Pet remove_task by title")
 def test_pet_remove_task():
@@ -189,12 +210,14 @@ def test_pet_remove_task():
     assert removed is True
     assert len(pet.tasks) == 1
 
+
 @test("Pet remove nonexistent task returns False")
 def test_pet_remove_nonexistent():
     pet = Pet(name="Luna", species="cat")
     pet.add_task(Task(title="Feed", duration_minutes=5))
     removed = pet.remove_task("Unknown")
     assert removed is False
+
 
 @test("Pet get_pending_tasks excludes completed")
 def test_pet_pending_tasks():
@@ -207,6 +230,7 @@ def test_pet_pending_tasks():
     pending = pet.get_pending_tasks()
     assert len(pending) == 1
     assert pending[0].title == "Walk"
+
 
 @test("Pet with no tasks returns empty lists")
 def test_pet_no_tasks():
@@ -221,12 +245,14 @@ def test_pet_no_tasks():
 # =============================================================================
 section("OWNER TESTS")
 
+
 @test("Owner creation with defaults")
 def test_owner_creation():
     owner = Owner(name="Jordan")
     assert owner.name == "Jordan"
     assert owner.available_minutes == 480
     assert owner.pets == []
+
 
 @test("Owner add and remove pet")
 def test_owner_add_remove_pet():
@@ -238,6 +264,7 @@ def test_owner_add_remove_pet():
     assert removed is True
     assert len(owner.pets) == 1
 
+
 @test("Owner get_pet by name")
 def test_owner_get_pet():
     owner = Owner(name="Jordan")
@@ -247,11 +274,13 @@ def test_owner_get_pet():
     assert pet is not None
     assert pet.species == "cat"
 
+
 @test("Owner get_pet returns None for unknown")
 def test_owner_get_unknown_pet():
     owner = Owner(name="Jordan")
     pet = owner.get_pet("Unknown")
     assert pet is None
+
 
 @test("Owner get_all_tasks across pets")
 def test_owner_all_tasks():
@@ -266,6 +295,7 @@ def test_owner_all_tasks():
     all_tasks = owner.get_all_tasks()
     assert len(all_tasks) == 3
 
+
 @test("Owner with no pets returns empty")
 def test_owner_no_pets():
     owner = Owner(name="Empty")
@@ -278,12 +308,14 @@ def test_owner_no_pets():
 # =============================================================================
 section("SCHEDULER SORTING TESTS")
 
+
 @test("Sort by time (chronological)")
 def test_sort_by_time():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     base = datetime(2026, 3, 29, 8, 0)
-    pet.add_task(Task(title="Later", duration_minutes=10, scheduled_time=base + timedelta(hours=2)))
+    pet.add_task(Task(title="Later", duration_minutes=10,
+                 scheduled_time=base + timedelta(hours=2)))
     pet.add_task(Task(title="First", duration_minutes=10, scheduled_time=base))
     pet.add_task(Task(title="Unscheduled", duration_minutes=10))
     owner.add_pet(pet)
@@ -293,19 +325,23 @@ def test_sort_by_time():
     assert sorted_tasks[1].title == "Later"
     assert sorted_tasks[2].title == "Unscheduled"
 
+
 @test("Sort by priority (HIGH first)")
 def test_sort_by_priority():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     pet.add_task(Task(title="Low", duration_minutes=10, priority=Priority.LOW))
-    pet.add_task(Task(title="High", duration_minutes=10, priority=Priority.HIGH))
-    pet.add_task(Task(title="Medium", duration_minutes=10, priority=Priority.MEDIUM))
+    pet.add_task(
+        Task(title="High", duration_minutes=10, priority=Priority.HIGH))
+    pet.add_task(Task(title="Medium", duration_minutes=10,
+                 priority=Priority.MEDIUM))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     sorted_tasks = scheduler.sort_by_priority(pet.tasks)
     assert sorted_tasks[0].priority == Priority.HIGH
     assert sorted_tasks[1].priority == Priority.MEDIUM
     assert sorted_tasks[2].priority == Priority.LOW
+
 
 @test("Sort by duration (shortest first)")
 def test_sort_by_duration():
@@ -321,6 +357,7 @@ def test_sort_by_duration():
     assert sorted_tasks[1].duration_minutes == 30
     assert sorted_tasks[2].duration_minutes == 60
 
+
 @test("Sort empty list returns empty")
 def test_sort_empty():
     owner = Owner(name="Test")
@@ -333,6 +370,7 @@ def test_sort_empty():
 # SCHEDULER FILTERING TESTS
 # =============================================================================
 section("SCHEDULER FILTERING TESTS")
+
 
 @test("Filter by pet")
 def test_filter_by_pet():
@@ -347,6 +385,7 @@ def test_filter_by_pet():
     mochi_tasks = scheduler.filter_by_pet(owner.get_all_tasks(), "Mochi")
     assert len(mochi_tasks) == 1
     assert mochi_tasks[0].title == "Walk"
+
 
 @test("Filter by status")
 def test_filter_by_status():
@@ -364,40 +403,48 @@ def test_filter_by_status():
     assert len(pending) == 1
     assert len(completed) == 1
 
+
 @test("Filter by priority")
 def test_filter_by_priority():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
-    pet.add_task(Task(title="High1", duration_minutes=10, priority=Priority.HIGH))
-    pet.add_task(Task(title="High2", duration_minutes=10, priority=Priority.HIGH))
+    pet.add_task(
+        Task(title="High1", duration_minutes=10, priority=Priority.HIGH))
+    pet.add_task(
+        Task(title="High2", duration_minutes=10, priority=Priority.HIGH))
     pet.add_task(Task(title="Low", duration_minutes=10, priority=Priority.LOW))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     high = scheduler.filter_by_priority(pet.tasks, Priority.HIGH)
     assert len(high) == 2
 
+
 @test("Filter recurring tasks")
 def test_filter_recurring():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     pet.add_task(Task(title="Daily", duration_minutes=10, frequency=Frequency.DAILY,
-                     scheduled_time=datetime(2026, 3, 29, 8, 0)))
-    pet.add_task(Task(title="Once", duration_minutes=10, frequency=Frequency.ONCE))
+                      scheduled_time=datetime(2026, 3, 29, 8, 0)))
+    pet.add_task(Task(title="Once", duration_minutes=10,
+                 frequency=Frequency.ONCE))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     recurring = scheduler.filter_recurring(pet.tasks)
     assert len(recurring) == 1
     assert recurring[0].title == "Daily"
 
+
 @test("Filter chain multiple filters")
 def test_filter_chain():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
-    pet.add_task(Task(title="H-Pending", duration_minutes=10, priority=Priority.HIGH))
+    pet.add_task(
+        Task(title="H-Pending", duration_minutes=10, priority=Priority.HIGH))
     task2 = Task(title="H-Done", duration_minutes=10, priority=Priority.HIGH)
     task2.mark_complete()
     pet.add_task(task2)
-    pet.add_task(Task(title="L-Pending", duration_minutes=10, priority=Priority.LOW))
+    pet.add_task(
+        Task(title="L-Pending", duration_minutes=10, priority=Priority.LOW))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     result = scheduler.filter_chain(
@@ -414,31 +461,37 @@ def test_filter_chain():
 # =============================================================================
 section("CONFLICT DETECTION TESTS")
 
+
 @test("Detect overlapping conflicts")
 def test_detect_overlapping():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     base = datetime(2026, 3, 28, 10, 0)
     pet.add_task(Task(title="T1", duration_minutes=30, scheduled_time=base))
-    pet.add_task(Task(title="T2", duration_minutes=30, scheduled_time=base + timedelta(minutes=15)))
+    pet.add_task(Task(title="T2", duration_minutes=30,
+                 scheduled_time=base + timedelta(minutes=15)))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     warnings = scheduler.detect_conflicts(pet.tasks)
     assert len(warnings) == 1
     assert warnings[0].overlap_minutes == 15
 
+
 @test("Exact same time conflict")
 def test_exact_same_time():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     same_time = datetime(2026, 3, 28, 10, 0)
-    pet.add_task(Task(title="T1", duration_minutes=30, scheduled_time=same_time))
-    pet.add_task(Task(title="T2", duration_minutes=20, scheduled_time=same_time))
+    pet.add_task(Task(title="T1", duration_minutes=30,
+                 scheduled_time=same_time))
+    pet.add_task(Task(title="T2", duration_minutes=20,
+                 scheduled_time=same_time))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     warnings = scheduler.detect_conflicts(pet.tasks)
     assert len(warnings) == 1
     assert warnings[0].overlap_minutes == 20
+
 
 @test("No overlap when tasks are sequential")
 def test_no_overlap_sequential():
@@ -446,11 +499,13 @@ def test_no_overlap_sequential():
     pet = Pet(name="Pet", species="dog")
     base = datetime(2026, 3, 28, 10, 0)
     pet.add_task(Task(title="T1", duration_minutes=30, scheduled_time=base))
-    pet.add_task(Task(title="T2", duration_minutes=30, scheduled_time=base + timedelta(minutes=30)))
+    pet.add_task(Task(title="T2", duration_minutes=30,
+                 scheduled_time=base + timedelta(minutes=30)))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     warnings = scheduler.detect_conflicts(pet.tasks)
     assert len(warnings) == 0
+
 
 @test("Conflicts across different pets")
 def test_conflicts_different_pets():
@@ -458,8 +513,10 @@ def test_conflicts_different_pets():
     dog = Pet(name="Mochi", species="dog")
     cat = Pet(name="Whiskers", species="cat")
     same_time = datetime(2026, 3, 28, 10, 0)
-    dog.add_task(Task(title="Walk", duration_minutes=30, scheduled_time=same_time))
-    cat.add_task(Task(title="Feed", duration_minutes=10, scheduled_time=same_time))
+    dog.add_task(Task(title="Walk", duration_minutes=30,
+                 scheduled_time=same_time))
+    cat.add_task(Task(title="Feed", duration_minutes=10,
+                 scheduled_time=same_time))
     owner.add_pet(dog)
     owner.add_pet(cat)
     scheduler = Scheduler(owner=owner)
@@ -467,28 +524,31 @@ def test_conflicts_different_pets():
     assert len(warnings) == 1
     assert "Different pets" in warnings[0].message
 
+
 @test("Unscheduled tasks don't cause conflicts")
 def test_unscheduled_no_conflict():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     pet.add_task(Task(title="Scheduled", duration_minutes=30,
-                     scheduled_time=datetime(2026, 3, 28, 10, 0)))
+                      scheduled_time=datetime(2026, 3, 28, 10, 0)))
     pet.add_task(Task(title="Unscheduled", duration_minutes=30))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     warnings = scheduler.detect_conflicts(pet.tasks)
     assert len(warnings) == 0
 
+
 @test("Get conflict-free tasks")
 def test_conflict_free_tasks():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     base = datetime(2026, 3, 28, 10, 0)
-    pet.add_task(Task(title="Conflict1", duration_minutes=30, scheduled_time=base))
+    pet.add_task(
+        Task(title="Conflict1", duration_minutes=30, scheduled_time=base))
     pet.add_task(Task(title="Conflict2", duration_minutes=30,
-                     scheduled_time=base + timedelta(minutes=10)))
+                      scheduled_time=base + timedelta(minutes=10)))
     pet.add_task(Task(title="Safe", duration_minutes=30,
-                     scheduled_time=base + timedelta(hours=2)))
+                      scheduled_time=base + timedelta(hours=2)))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
     safe, warnings = scheduler.get_conflict_free_tasks(pet.tasks)
@@ -501,6 +561,7 @@ def test_conflict_free_tasks():
 # SCHEDULE GENERATION TESTS
 # =============================================================================
 section("SCHEDULE GENERATION TESTS")
+
 
 @test("Generate schedule respects time limit")
 def test_schedule_time_limit():
@@ -515,17 +576,20 @@ def test_schedule_time_limit():
     total = sum(t.duration_minutes for t in schedule)
     assert total <= 60
 
+
 @test("Generate schedule prioritizes HIGH")
 def test_schedule_prioritizes_high():
     owner = Owner(name="Test")
     pet = Pet(name="Pet", species="dog")
     pet.add_task(Task(title="Low", duration_minutes=20, priority=Priority.LOW))
-    pet.add_task(Task(title="High", duration_minutes=30, priority=Priority.HIGH))
+    pet.add_task(
+        Task(title="High", duration_minutes=30, priority=Priority.HIGH))
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner, daily_limit_minutes=30)
     schedule = scheduler.generate_schedule()
     assert len(schedule) == 1
     assert schedule[0].title == "High"
+
 
 @test("Generate schedule excludes completed by default")
 def test_schedule_excludes_completed():
@@ -541,6 +605,7 @@ def test_schedule_excludes_completed():
     assert len(schedule) == 1
     assert schedule[0].title == "Pending"
 
+
 @test("Empty schedule when all complete")
 def test_empty_schedule_all_complete():
     owner = Owner(name="Test")
@@ -552,6 +617,7 @@ def test_empty_schedule_all_complete():
     scheduler = Scheduler(owner=owner)
     schedule = scheduler.generate_schedule(include_completed=False)
     assert schedule == []
+
 
 @test("Assign times sequential")
 def test_assign_times():
@@ -572,6 +638,7 @@ def test_assign_times():
 # =============================================================================
 section("INTEGRATION TESTS")
 
+
 @test("Full workflow")
 def test_full_workflow():
     owner = Owner(name="Jordan", available_minutes=90)
@@ -579,14 +646,18 @@ def test_full_workflow():
     cat = Pet(name="Whiskers", species="cat", age=5)
     owner.add_pet(dog)
     owner.add_pet(cat)
-    dog.add_task(Task(title="Walk", duration_minutes=30, priority=Priority.HIGH))
-    dog.add_task(Task(title="Feed", duration_minutes=10, priority=Priority.HIGH))
-    cat.add_task(Task(title="Medication", duration_minutes=5, priority=Priority.HIGH))
+    dog.add_task(
+        Task(title="Walk", duration_minutes=30, priority=Priority.HIGH))
+    dog.add_task(
+        Task(title="Feed", duration_minutes=10, priority=Priority.HIGH))
+    cat.add_task(
+        Task(title="Medication", duration_minutes=5, priority=Priority.HIGH))
     scheduler = Scheduler(owner=owner, daily_limit_minutes=90)
     schedule = scheduler.generate_schedule()
     assert len(schedule) >= 3
     total = scheduler.get_total_scheduled_minutes(schedule)
     assert total <= 90
+
 
 @test("Recurring task workflow")
 def test_recurring_workflow():
@@ -594,7 +665,7 @@ def test_recurring_workflow():
     pet = Pet(name="Pet", species="dog")
     base = datetime(2026, 3, 29, 8, 0)
     task = Task(title="Daily", duration_minutes=30, frequency=Frequency.DAILY,
-               scheduled_time=base)
+                scheduled_time=base)
     pet.add_task(task)
     owner.add_pet(pet)
     scheduler = Scheduler(owner=owner)
@@ -613,10 +684,12 @@ def test_recurring_workflow():
 # =============================================================================
 section("EDGE CASE TESTS")
 
+
 @test("Zero duration task")
 def test_zero_duration():
     task = Task(title="Instant", duration_minutes=0)
     assert task.duration_minutes == 0
+
 
 @test("Exact time budget match")
 def test_exact_budget():
@@ -629,6 +702,7 @@ def test_exact_budget():
     schedule = scheduler.generate_schedule()
     total = scheduler.get_total_scheduled_minutes(schedule)
     assert total == 60
+
 
 @test("Single task exceeds budget")
 def test_exceeds_budget():

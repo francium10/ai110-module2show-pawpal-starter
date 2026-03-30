@@ -100,7 +100,8 @@ pawpal-starter/
 ├── README.md            # This file
 ├── reflection.md        # Design reflection document
 ├── docs/
-│   └── uml_final.md     # Final UML diagrams (Mermaid.js)
+│   └── uml_final.md     # Final UML diagrams (Mermaid.js) 
+    ├──images/demo1,demo2/demo3/demo4
 └── tests/
     ├── __init__.py
     ├── test_pawpal.py   # Pytest test suite
@@ -221,6 +222,47 @@ See `docs/uml_final.md` for complete class and sequence diagrams.
 | **📅 Smart Schedule** | Generate optimized schedule, see conflicts |
 | **🔍 Filter & Sort** | Explore sorting/filtering algorithms |
 | **📊 Analytics** | Per-pet stats, progress, conflict analysis |
+
+---
+
+## 🚀 Optional Extensions Implemented
+
+### Challenge 1: Advanced Algorithm — "Next Available Slot"
+
+The Scheduler now includes an intelligent slot-finding algorithm:
+
+```python
+# Find the first available 30-minute slot
+slot = scheduler.find_next_available_slot(duration_needed=30)
+# Returns: TimeSlot(start_time=8:30 AM, end_time=9:00 AM, duration=30)
+
+# Find ALL available slots
+all_slots = scheduler.find_all_available_slots(duration_needed=30)
+
+# Get AI-suggested best time based on priority
+suggested = scheduler.suggest_best_time(task)
+# HIGH priority → early slot, LOW priority → late slot
+```
+
+**Algorithm:** Gap-finding with day boundary constraints (6 AM - 10 PM configurable)
+
+### Challenge 2: Data Persistence (JSON)
+
+Your pets and tasks now persist between sessions:
+
+```python
+# Save to file
+owner.save_to_json("data.json")
+
+# Load on startup
+owner = Owner.load_from_json("data.json")
+```
+
+**Implementation:** Each class has `to_dict()` and `from_dict()` methods for serialization.
+
+### Challenge 5: Multi-Model Prompt Comparison
+
+See `reflection.md` Section 6 for a detailed comparison of Claude vs GPT-4 responses to implementing the slot-finding algorithm.
 
 ---
 
